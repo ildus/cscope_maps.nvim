@@ -78,6 +78,12 @@ local cscope_parse_output = function(cs_out)
 	return res
 end
 
+local vim, fn, api, g = vim, vim.fn, vim.api, vim.g
+
+local pickers = require "telescope.pickers"
+local finders = require "telescope.finders"
+local conf = require("telescope.config").values
+
 local cscope_find_helper = function(op_n, op_s, symbol)
 	-- Executes cscope command and shows result in QuickFix List
 
@@ -85,6 +91,9 @@ local cscope_find_helper = function(op_n, op_s, symbol)
 
 	if io.open(db_file, "r") == nil then
 		print("cscope: database file not found. [" .. db_file .. "]")
+		return
+	end
+	if symbol == nil then
 		return
 	end
 	local cmd = "cscope -dL -f " .. db_file .. " -" .. op_n .. " " .. symbol
@@ -100,10 +109,38 @@ local cscope_find_helper = function(op_n, op_s, symbol)
 	end
 
 	local parsed_output = cscope_parse_output(output)
+	local entry_maker = function(entry)
+		return {
+			value = entry,
+			display = entry["filename"] .. ":" .. entry["lnum"] .. " | " .. entry["text"],
+			ordinal = entry["filename"],
+			path = entry["filename"],
+			lnum = tonumber(entry["lnum"]),
+		}
+	end
 
-	vim.fn.setqflist(parsed_output, "r")
-	vim.fn.setqflist({}, "a", { title = "cscope find " .. op_s .. " " .. symbol })
-	vim.api.nvim_command("copen")
+	local finder = finders.new_table {
+		results = parsed_output,
+		entry_maker = entry_maker,
+    }
+
+	local show_picker = function(opts)
+		opts = opts or {}
+		opts.entry_maker = entry_maker
+
+		pickers.new(opts, {
+			prompt_title = "Results",
+			finder = finder,
+			previewer = conf.grep_previewer(opts),
+			sorter = conf.generic_sorter(opts),
+		}):find()
+	end
+
+	show_picker()
+
+	-- vim.fn.setqflist(parsed_output, "r")
+	-- vim.fn.setqflist({}, "a", { title = "cscope find " .. op_s .. " " .. symbol })
+	-- vim.api.nvim_command("copen")
 end
 
 local cscope_find = function(op, symbol)

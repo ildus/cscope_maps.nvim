@@ -124,6 +124,26 @@ local keymap_w_wk = function(wk)
 	}, keymap_opts)
 end
 
+local keymap_w_wk_without_prompt = function(wk)
+	-- With which-key
+	wk.register({
+		["<leader>"] = {
+			c = {
+				name = "+code",
+				s = { "<cmd>lua require('cscope_maps').cscope_noprompt('s', vim.fn.expand('<cword>'))<cr>", sym_map["s"] },
+				g = { "<cmd>lua require('cscope_maps').cscope_noprompt('g', vim.fn.expand('<cword>'))<cr>", sym_map["g"] },
+				c = { "<cmd>lua require('cscope_maps').cscope_noprompt('c', vim.fn.expand('<cword>'))<cr>", sym_map["c"] },
+				t = { "<cmd>lua require('cscope_maps').cscope_noprompt('t', vim.fn.expand('<cword>'))<cr>", sym_map["t"] },
+				e = { "<cmd>lua require('cscope_maps').cscope_noprompt('e', vim.fn.expand('<cword>'))<cr>", sym_map["e"] },
+				f = { "<cmd>lua require('cscope_maps').cscope_noprompt('f', vim.fn.expand('<cfile>'))<cr>", sym_map["f"] },
+				i = { "<cmd>lua require('cscope_maps').cscope_noprompt('i', vim.fn.expand('<cfile>'))<cr>", sym_map["i"] },
+				d = { "<cmd>lua require('cscope_maps').cscope_noprompt('d', vim.fn.expand('<cword>'))<cr>", sym_map["d"] },
+				a = { "<cmd>lua require('cscope_maps').cscope_noprompt('a', vim.fn.expand('<cword>'))<cr>", sym_map["a"] },
+			},
+		},
+	}, keymap_opts)
+end
+
 M.setup = function(opts)
 	M.opts = vim.tbl_extend("force", M.opts, opts)
 
@@ -156,6 +176,15 @@ M.setup = function(opts)
 		end)
 	end
 
+	M.cscope_noprompt = function(operation, symbol)
+		local cmd = cscope .. " find " .. operation
+		cmd = cmd .. " " .. symbol
+		vim.api.nvim_command(cmd)
+		if is_supported_version() then
+			vim.api.nvim_command("copen")
+		end
+	end
+
 	if M.opts.disable_maps then
 		-- No need to proceed
 		return
@@ -167,7 +196,7 @@ M.setup = function(opts)
 		keymap_wo_wk()
 	else
 		-- which-key mappings
-		keymap_w_wk(wk)
+		keymap_w_wk_without_prompt(wk)
 	end
 end
 
